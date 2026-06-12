@@ -1,0 +1,239 @@
+@page "/characters"
+@using Blazorise.LoadingIndicator
+@using WorkExperience.Client.Core.Models
+@using WorkExperience.Client.Core.Services
+@inject HarryPotterService HarryPotterService
+
+<h1><b>Characters</b></h1>
+
+<div class="search-field">
+    <Field Horizontal>
+        <FieldLabel ColumnSize="ColumnSize.Is1">Character:</FieldLabel>
+        <FieldBody ColumnSize="ColumnSize.Is4">
+            <input class="form-control" placeholder="Search" @bind="CharacterSearchText" @bind:event="oninput" />
+        </FieldBody>
+    </Field>
+</div>
+
+<LoadingIndicator @bind-Visible="@IsLoading"></LoadingIndicator>
+
+<div class="card-grid">
+    @foreach (Character character in FilteredCharacters)
+    {
+        <div class="card-border">
+            <Card Style="@($"background-color: {GetHouseColor(character.House)}")">
+                <div class="card-size">
+                    <CardTitle Size="5" Class="card-title">
+                        @character.Name
+                    </CardTitle>
+                    <CardImage Source="@GetImageSource(character.Image)"></CardImage>
+                    <div class="card-body">
+                        <CardBody>
+                            <CardText>
+                                <ListGroup>
+                                    @if (!string.IsNullOrWhiteSpace(character.Gender))
+                                    {
+                                        <ListGroupItem><b>Gender:</b> @character.Gender</ListGroupItem>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(character.House))
+                                    {
+                                        <ListGroupItem><b>House:</b> @character.House</ListGroupItem>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(character.DateOfBirth))
+                                    {
+                                        <ListGroupItem><b>Date Of Birth:</b> @character.DateOfBirth</ListGroupItem>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(character.Ancestry))
+                                    {
+                                        <ListGroupItem><b>Ancestry:</b> @character.Ancestry</ListGroupItem>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(character.Patronus))
+                                    {
+                                        <ListGroupItem><b>Patronus:</b> @character.Patronus</ListGroupItem>
+                                    }
+                                    @if (HasWandDetails(character))
+                                    {
+                                        <ListGroupItem>
+                                            <b>Wand:</b>
+                                            <Button Class="read-more-button" @onclick="@(() => ToggleWandDetails(character))">
+                                                @(character.ShowWandDetails ? "Hide details" : "Read more")
+                                                <i class="arrow @(character.ShowWandDetails ? "up" : "down")"></i>
+                                            </Button>
+                                        </ListGroupItem>
+                                    }
+                                    @if (character.ShowWandDetails)
+                                    {
+                                        @if (!string.IsNullOrWhiteSpace(character.Wand?.Wood))
+                                        {
+                                            <ListGroupItem><b>Wood:</b> @character.Wand!.Wood</ListGroupItem>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(character.Wand?.Core))
+                                        {
+                                            <ListGroupItem><b>Core:</b> @character.Wand!.Core</ListGroupItem>
+                                        }
+                                        @if (character.Wand?.Length is not null)
+                                        {
+                                            <ListGroupItem><b>Length:</b> @character.Wand.Length</ListGroupItem>
+                                        }
+                                    }
+                                </ListGroup>
+                            </CardText>
+                        </CardBody>
+                    </div>
+                </div>
+            </Card>
+        </div>
+    }
+</div>
+
+@code {
+    private const string DefaultImageUrl = "https://img.freepik.com/premium-vector/witch-s-broom-silhouette-isolated-white-background-traditional-halloween-decorative-element_502505-561.jpg";
+
+    private string CharacterSearchText = string.Empty;
+
+    private bool IsLoading;
+
+    private List<Character> CharacterList { get; set; } = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        CharacterList = await HarryPotterService.GetCharactersAsync();
+        IsLoading = false;
+    }
+
+    private IEnumerable<Character> FilteredCharacters
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(CharacterSearchText))
+            {
+                return CharacterList;
+            }
+            return CharacterList.Where(character =>
+                character.Name?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false);
+        }
+    }
+
+    private Dictionary<string, string> HouseColors { get; set; } = new Dictionary<string, string>
+    {
+        {
+            "Gryffindor", "#d49d9d"
+        },
+        {
+            "Slytherin", "#a8d49b"
+        },
+        {
+            "Ravenclaw", "#92a1d4"
+        },
+        {
+            "Hufflepuff", "#edd69a"
+        },
+        {
+            "", "#c7c7c7"
+        }
+    };
+
+    private string GetImageSource(string? characterImage)
+    {
+        if (!string.IsNullOrWhiteSpace(characterImage))
+        {
+            return characterImage;
+        }
+
+        return DefaultImageUrl;
+    }
+
+    private string GetHouseColor(string? house)
+    {
+        string houseName = house ?? string.Empty;
+
+        if (HouseColors.ContainsKey(houseName))
+        {
+            return HouseColors[houseName];
+        }
+
+        return HouseColors[string.Empty];
+    }
+
+    private static bool HasWandDetails(Character character)
+    {
+        bool hasWood = !string.IsNullOrWhiteSpace(character.Wand?.Wood);
+        bool hasCore = !string.IsNullOrWhiteSpace(character.Wand?.Core);
+        bool hasLength = character.Wand?.Length is not null;
+
+        return hasWood || hasCore || hasLength;
+    }
+
+    private void ToggleWandDetails(Character character)
+    {
+        character.ShowWandDetails = !character.ShowWandDetails;
+    }
+}
+
+@{
+    <style scoped>
+        .card-title {
+            color: white;
+            font-weight: bold;
+        }
+
+        .card-size {
+            max-width: 200px;
+            margin: 20px;
+        }
+
+        .card-grid {
+            flex-flow: row wrap;
+            margin-right: -.75rem;
+            margin-left: -.75rem;
+            display: flex;
+        }
+
+        .card-border {
+            border: 5px solid #FFFFFF;
+        }
+
+        .card-body {
+            padding-left: 0px !important;
+            padding-right: 0px !important;
+            padding-top: 10px !important;
+        }
+
+        .search-field {
+            padding: 10px;
+        }
+
+        .read-more-button {
+            padding: 0px !important;
+            padding-right: 1px !important;
+            background-color: transparent;
+            background-repeat: no-repeat;
+            border: none;
+            cursor: pointer;
+            overflow: hidden;
+            outline: none;
+        }
+
+        .arrow {
+            border: solid black;
+            border-width: 0 2px 2px 0;
+            display: inline-block;
+            padding: 3px;
+        }
+
+        .down {
+            transform: rotate(45deg);
+            -webkit-transform: rotate(45deg);
+            margin-bottom: 2px;
+            margin-left: 5px;
+        }
+
+        .up {
+            transform: rotate(-135deg);
+            -webkit-transform: rotate(-135deg);
+            margin-bottom: -1px;
+            margin-left: 5px;
+        }
+    </style>
+}
