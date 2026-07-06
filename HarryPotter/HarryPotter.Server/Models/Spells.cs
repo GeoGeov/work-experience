@@ -2,15 +2,15 @@ using System.Text.Json.Serialization;
 
 namespace HarryPotter.Server.Models
 {
-    public class Wands
+    public class Spells
     {
-        [JsonPropertyName("core")]
-        public string? Core { get; set; }
+        [JsonPropertyName("id")]
+        public string? id { get; set; }
 
-        [JsonPropertyName("length")]
-        public decimal? Length { get; set; }
+        [JsonPropertyName("name")]
+        public decimal? name { get; set; }
 
-        [JsonPropertyName("wood")]
-        public string? Wood { get; set; }
+        [JsonPropertyName("description")]
+        public string? description { get; set; }
     }
 }
