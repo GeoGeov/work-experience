@@ -5,6 +5,6 @@ namespace HarryPotter.Server.Interfaces
     public interface IHarryPotterService
     {
         Task<List<Character>> GetCharactersAsync();
-        Task<List<Spells>> GetSpellsAsync();
+        Task<List<Spell>> GetSpellsAsync();
     }
 }
