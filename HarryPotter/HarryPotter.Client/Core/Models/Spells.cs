@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace HarryPotter.Server.Models
+namespace HarryPotter.Client.Models
 {
     public class Spell
     {
