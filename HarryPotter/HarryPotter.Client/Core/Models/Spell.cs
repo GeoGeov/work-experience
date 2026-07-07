@@ -8,7 +8,7 @@ namespace HarryPotter.Client.Core.Models
         public string? id { get; set; }
 
         [JsonPropertyName("name")]
-        public decimal? name { get; set; }
+        public string? name { get; set; }
         
         [JsonPropertyName("description")]
         public string? description { get; set; }

@@ -64,6 +64,14 @@
             <td> @SpellSearchText </td>
             <td> Description </td>
         </tr>
+
+		@foreach (Spell spell in FilteredSpells)
+		{
+			<tr>
+				<td>@spell.name</td>
+				<td>@spell.description</td>
+			</tr>
+		}
     </tbody>
 </table>
 
@@ -96,5 +104,18 @@
         IsLoading = true;
         SpellList = await HarryPotterService.GetSpellsAsync();
         IsLoading = false;
+    }
+
+    private IEnumerable<Spell> FilteredSpells
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(SpellSearchText)) //if there is no data, ignore character
+            {
+                return SpellList;
+            }
+            return SpellList.Where(spell =>
+                spell.name?.Contains(SpellSearchText, StringComparison.OrdinalIgnoreCase) ?? false);
+        }
     }
 }

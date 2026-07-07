@@ -26,13 +26,23 @@ namespace HarryPotter.Client.Core.Services
         }
         public async Task<List<Spell>> GetSpellsAsync()
         {
-            HttpResponseMessage response = await _httpClient.GetAsync("spells");
-            response.EnsureSuccessStatusCode();
+            try {
+                HttpResponseMessage response = await _httpClient.GetAsync($"{BaseAddress}spells");
+                Console.WriteLine(response);
+                response.EnsureSuccessStatusCode();
 
-            string json = await response.Content.ReadAsStringAsync();
-            List<Spell>? spells = JsonSerializer.Deserialize<List<Spell>>(json);
+                string json = await response.Content.ReadAsStringAsync();
+                List<Spell>? spells = JsonSerializer.Deserialize<List<Spell>>(json);
 
-            return spells ?? new List<Spell>();
+                return spells ?? new List<Spell>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return new List<Spell>();
+            }
+
+            
         }
     }
 }
