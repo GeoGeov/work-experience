@@ -1,4 +1,7 @@
 @page "/spells"
+@using HarryPotter.Client.Core.Models
+@using HarryPotter.Client.Core.Services
+@inject HarryPotterService HarryPotterService
 
 <h1><b>Spells Challenge</b></h1>
 
@@ -37,7 +40,7 @@
     <Field Horizontal>
         <FieldLabel ColumnSize="ColumnSize.Is1">Name:</FieldLabel>
         <FieldBody ColumnSize="ColumnSize.Is4">
-            <input class="form-control" placeholder="Wire this up once your spells are loading" disabled />
+            <input class="form-control" placeholder="Wire this up once your spells are loading" enabled />
         </FieldBody>
     </Field>
 </div>
@@ -46,6 +49,7 @@
     <thead>
         <tr>
             <th>Name</th>
+                
             <th>Description</th>
         </tr>
     </thead>
@@ -74,4 +78,15 @@
             margin-top: 10px;
         }
     </style>
+}
+@code {
+    private List<Spell> SpellList { get; set; } = [];
+
+    private bool IsLoading;
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        SpellList = await HarryPotterService.GetSpellsAsync();
+        IsLoading = false;
+    }
 }
