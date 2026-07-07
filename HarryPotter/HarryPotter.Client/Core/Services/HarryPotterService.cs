@@ -32,6 +32,7 @@ namespace HarryPotter.Client.Core.Services
                 response.EnsureSuccessStatusCode();
 
                 string json = await response.Content.ReadAsStringAsync();
+                Console.WriteLine(json);
                 List<Spell>? spells = JsonSerializer.Deserialize<List<Spell>>(json);
 
                 return spells ?? new List<Spell>();

@@ -46,7 +46,7 @@
     </Field>
 </div>
 
-<LoadingIndicator @bind-Visible="@IsLoading"></LoadingIndicator>
+
 
 <table class="table table-striped table-hover spells-table">
     <thead>
@@ -58,11 +58,7 @@
     </thead>
     <tbody>  
         <tr>
-            <td colspan="2">Your spell data will appear here once you finish the feature.</td>
-        </tr>
-        <tr>
-            <td> @SpellSearchText </td>
-            <td> Description </td>
+            <td colspan="2"> <LoadingIndicator @bind-Visible="@IsLoading"></LoadingIndicator> </td>
         </tr>
 
 		@foreach (Spell spell in FilteredSpells)
