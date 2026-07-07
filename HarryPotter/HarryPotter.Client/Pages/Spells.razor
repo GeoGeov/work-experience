@@ -1,4 +1,5 @@
 @page "/spells"
+@using Blazorise.LoadingIndicator
 @using HarryPotter.Client.Core.Models
 @using HarryPotter.Client.Core.Services
 @inject HarryPotterService HarryPotterService
@@ -40,10 +41,12 @@
     <Field Horizontal>
         <FieldLabel ColumnSize="ColumnSize.Is1">Name:</FieldLabel>
         <FieldBody ColumnSize="ColumnSize.Is4">
-            <input class="form-control" placeholder="Wire this up once your spells are loading" enabled />
+            <input class="form-control" placeholder="Search" @bind="SpellSearchText" @bind:event="oninput" />
         </FieldBody>
     </Field>
 </div>
+
+<LoadingIndicator @bind-Visible="@IsLoading"></LoadingIndicator>
 
 <table class="table table-striped table-hover spells-table">
     <thead>
@@ -56,6 +59,10 @@
     <tbody>  
         <tr>
             <td colspan="2">Your spell data will appear here once you finish the feature.</td>
+        </tr>
+        <tr>
+            <td> @SpellSearchText </td>
+            <td> Description </td>
         </tr>
     </tbody>
 </table>
@@ -80,6 +87,7 @@
     </style>
 }
 @code {
+    private string SpellSearchText = string.Empty;
     private List<Spell> SpellList { get; set; } = [];
 
     private bool IsLoading;
