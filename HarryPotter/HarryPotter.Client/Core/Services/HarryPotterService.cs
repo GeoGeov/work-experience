@@ -1,5 +1,4 @@
 using HarryPotter.Client.Core.Models;
-using HarryPotter.Client.Models;
 using System.Text.Json;
 
 namespace HarryPotter.Client.Core.Services
