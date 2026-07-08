@@ -4,42 +4,29 @@
 @using HarryPotter.Client.Core.Services
 @inject HarryPotterService HarryPotterService
 
-<h1><b>Spells Challenge</b></h1>
+<h1><b>Spells</b></h1>
 
-<p>
-    This page is intentionally unfinished. Use the <b>Characters</b> page as your reference, then build the Spells feature yourself.
-</p>
 
-<h4><b>Your goal</b></h4>
-
-<ol>
-    <li>Create a spell model with the properties you need.</li>
-    <li>Add the server-side endpoint flow for spells.</li>
-    <li>Add the client-side service method for spells.</li>
-    <li>Load the data into this page.</li>
-    <li>Display the results and add a simple search.</li>
-</ol>
-
-<h4><b>Files you will probably change</b></h4>
-
-<ul>
-    <li>Client model</li>
-    <li>Client <code>HarryPotterService</code></li>
-    <li>Server service interface</li>
-    <li>Server <code>HarryPotterController</code></li>
-    <li>Server <code>HarryPotterService</code></li>
-    <li>This Razor page</li>
-</ul>
-
-<h4><b>Starter layout</b></h4>
-
-<p>
-    The search box and table shape are already here so you have a baseline to build on.
-</p>
 
 <div class="search-field">
     <Field Horizontal>
-        <FieldLabel ColumnSize="ColumnSize.Is1">Name:</FieldLabel>
+        <FieldBody ColumnSize="ColumnSize.Is2">
+            @* Drop Down Menu*@
+            <Dropdown Color="DropdownColor.Secondary">
+                <DropdownToggle>Filter By</DropdownToggle>
+                <DropdownMenu Class="px-4 py-3" Style="width:480px;">
+                     @* Check Boxes connected to variables*@ 
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="byName" @bind="SearchByName" />
+                        <label class="form-check-label" for="byName">Name</label>
+                    </div>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="byDescription" @bind="SearchByDescription" />
+                        <label class="form-check-label" for="byDescription">Description</label>
+                    </div>
+                </DropdownMenu>
+            </Dropdown>
+        </FieldBody>
         <FieldBody ColumnSize="ColumnSize.Is4">
             <input class="form-control" placeholder="Search" @bind="SpellSearchText" @bind:event="oninput" />
         </FieldBody>
@@ -71,14 +58,6 @@
     </tbody>
 </table>
 
-<h4><b>Success check</b></h4>
-
-<ul>
-    <li>The page loads spell data from the API.</li>
-    <li>You can show information about the spells in a clear way.</li>
-    <li>You can explain the flow from page -> client service -> controller -> server service -> HP API.</li>
-</ul>
-
 @{
     <style scoped>
         .search-field {
@@ -92,7 +71,10 @@
 }
 @code {
     private string SpellSearchText = string.Empty;
-    private List<Spell> SpellList { get; set; } = [];
+    private List<Spell> SpellList { get; set; } = new List<Spell>();
+
+    private bool SearchByName { get; set; } = true;
+    private bool SearchByDescription { get; set; } = true;
 
     private bool IsLoading;
     protected override async Task OnInitializedAsync()
@@ -106,12 +88,23 @@
     {
         get
         {
-            if (string.IsNullOrWhiteSpace(SpellSearchText)) //if there is no data, ignore character
+            if (string.IsNullOrWhiteSpace(SpellSearchText))
             {
                 return SpellList;
             }
+
+            if (!SearchByName && !SearchByDescription)
+            {
+                // nothing selected to search by
+                return Enumerable.Empty<Spell>();
+            }
+
             return SpellList.Where(spell =>
-                spell.name?.Contains(SpellSearchText, StringComparison.OrdinalIgnoreCase) ?? false);
+            {
+                var matchName = SearchByName && (spell.name?.Contains(SpellSearchText, StringComparison.OrdinalIgnoreCase) ?? false);
+                var matchDesc = SearchByDescription && (spell.description?.Contains(SpellSearchText, StringComparison.OrdinalIgnoreCase) ?? false);
+                return matchName || matchDesc;
+            });
         }
     }
 }
