@@ -57,7 +57,7 @@ Once you have forked the repo (see Challenge Setup above), you need to download 
 You are a team on this project. Help each other out, talk through problems together, and make sure you both understand what is going on. If one of you is stuck, work through it together rather than moving on.
 
 ---
-
+https://docs.potterdb.com/apis/rest
 ## Useful Links
 
 - [Harry Potter API](https://hp-api.onrender.com/) — the data source this project uses
