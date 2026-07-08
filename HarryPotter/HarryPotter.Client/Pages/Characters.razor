@@ -8,7 +8,31 @@
 
 <div class="search-field">
     <Field Horizontal>
-        <FieldLabel ColumnSize="ColumnSize.Is1">Character:</FieldLabel>
+        <FieldBody ColumnSize="ColumnSize.Is2">
+            @* Drop Down Menu*@
+            <Dropdown Color="DropdownColor.Secondary">
+                <DropdownToggle>Filter By</DropdownToggle>
+                <DropdownMenu Class="px-4 py-3" Style="width:480px;">
+                    @* Check Boxes connected to variables*@
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="byName" @bind="SearchByName" />
+                        <label class="form-check-label" for="byName">Name</label>
+                    </div>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="byHouse" @bind="SearchByHouse">
+                        <label class="form-check-label" for="byHouse">House</label>
+                    </div>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="byStudents" @bind="SearchByStudents">
+                        <label class="form-check-label" for="byStudents">Students</label>
+                    </div>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="byStaff" @bind="SearchByStaff">
+                        <label class="form-check-label" for="byStaff">Staff</label>
+                    </div>
+                </DropdownMenu>
+            </Dropdown>
+        </FieldBody>
         <FieldBody ColumnSize="ColumnSize.Is4">
             <input class="form-control" placeholder="Search" @bind="CharacterSearchText" @bind:event="oninput" />
         </FieldBody>
@@ -88,12 +112,13 @@
 
 @code {
     private const string DefaultImageUrl = "https://img.freepik.com/premium-vector/witch-s-broom-silhouette-isolated-white-background-traditional-halloween-decorative-element_502505-561.jpg";
-
     private string CharacterSearchText = string.Empty;
 
     private bool IsLoading;
 
     private List<Character> CharacterList { get; set; } = [];
+
+    private bool SearchByName, SearchByHouse, SearchByStaff, SearchByStudents;
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,12 +131,47 @@
     {
         get
         {
+            // No search text: apply only student/staff filters if specified
             if (string.IsNullOrWhiteSpace(CharacterSearchText))
             {
+                if (SearchByStaff && !SearchByStudents)
+                {
+                    return CharacterList.Where(Character => Character.HogwartsStaff ?? false);
+                }
+
+                if (SearchByStudents && !SearchByStaff)
+                {
+                    return CharacterList.Where(Character => Character.HogwartsStudent ?? false);
+                }
+
+                // If both or neither are selected, return all
                 return CharacterList;
             }
-            return CharacterList.Where(character =>
-                character.Name?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false);
+
+            // With search text: evaluate name/house text matches and optionally type filters
+            return CharacterList.Where(Character =>
+            {
+                var matchName = Character.Name?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
+                var matchHouse = Character.House?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
+                var matchStaff = Character.HogwartsStaff ?? false;
+                var matchStudent = Character.HogwartsStudent ?? false;
+
+                // If any filter checkboxes are selected, the character must match at least one selected filter
+                var anyFilterSelected = SearchByName || SearchByHouse || SearchByStaff || SearchByStudents;
+
+                if (anyFilterSelected)
+                {
+                    bool textMatch = (SearchByName && matchName) || (SearchByHouse && matchHouse);
+                    bool typeMatch = (SearchByStaff && matchStaff) || (SearchByStudents && matchStudent);
+
+                    // If text filters were selected, require textMatch OR typeMatch when type filters also selected.
+                    // If only text filters selected, require textMatch. If only type filters selected, require typeMatch.
+                    return ((SearchByName || SearchByHouse) ? textMatch : false) || ((SearchByStaff || SearchByStudents) ? typeMatch : false);
+                }
+
+                // No specific filters selected: default to searching name or house
+                return matchName || matchHouse;
+            });
         }
     }
 
