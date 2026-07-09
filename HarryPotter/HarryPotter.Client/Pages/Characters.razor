@@ -1,10 +1,11 @@
-@page "/characters"
+@page "/characters" 
 @using Blazorise.LoadingIndicator
 @using HarryPotter.Client.Core.Models
 @using HarryPotter.Client.Core.Services
 @inject HarryPotterService HarryPotterService
 
 <h1><b>Characters</b></h1>
+
 
 <div class="search-field">
     <Field Horizontal>
@@ -13,15 +14,39 @@
             <Dropdown Color="DropdownColor.Secondary">
                 <DropdownToggle>Filter By</DropdownToggle>
                 <DropdownMenu Class="px-4 py-3" Style="width:480px;">
-                    @* Check Boxes connected to variables*@
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="byName" @bind="SearchByName" />
-                        <label class="form-check-label" for="byName">Name</label>
-                    </div>
-                    <div class="form-check mt-2">
-                        <input class="form-check-input" type="checkbox" id="byHouse" @bind="SearchByHouse">
-                        <label class="form-check-label" for="byHouse">House</label>
-                    </div>
+                    <Field Horizontal>
+                        <FieldBody ColumnSize="ColumnSize.Is1">
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="byHouse" @bind="SearchByHouse">
+                            </Div>
+                         </FieldBody>
+                         <FieldBody ColumnSize="ColumnSize.Is3">
+                             <Dropdown Color="DropdownColor.Secondary">
+                                <DropdownToggle Disabled="@(!SearchByHouse)">House</DropdownToggle>
+                                <DropdownMenu Class="px-4 py-3" Style="width:480px;">
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" id="houseGryffindor" @bind="SearchGryffindor" />
+                                        <label class="form-check-label" for="houseGryffindor">Gryffindor</label>
+                                    </div>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" id="houseSlytherin" @bind="SearchSlytherin" />
+                                        <label class="form-check-label" for="houseSlytherin">Slytherin</label>
+                                    </div>
+
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" id="houseRavenclaw" @bind="SearchRavenclaw" />
+                                        <label class="form-check-label" for="houseRavenclaw">Ravenclaw</label>
+                                    </div>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" id="houseHufflepuff" @bind="SearchHufflepuff" />
+                                        <label class="form-check-label" for="houseHufflepuff">Hufflepuff</label>
+                                    </div>
+
+                                </DropdownMenu>
+                            </Dropdown>
+                         </FieldBody>
+                    </Field>
+
                     <div class="form-check mt-2">
                         <input class="form-check-input" type="checkbox" id="byStudents" @bind="SearchByStudents">
                         <label class="form-check-label" for="byStudents">Students</label>
@@ -30,9 +55,12 @@
                         <input class="form-check-input" type="checkbox" id="byStaff" @bind="SearchByStaff">
                         <label class="form-check-label" for="byStaff">Staff</label>
                     </div>
+
                 </DropdownMenu>
             </Dropdown>
         </FieldBody>
+           
+
         <FieldBody ColumnSize="ColumnSize.Is4">
             <input class="form-control" placeholder="Search" @bind="CharacterSearchText" @bind:event="oninput" />
         </FieldBody>
@@ -116,9 +144,10 @@
 
     private bool IsLoading;
 
-    private List<Character> CharacterList { get; set; } = [];
+    private List<Character> CharacterList { get; set; } = new List<Character>();
 
-    private bool SearchByName, SearchByHouse, SearchByStaff, SearchByStudents;
+    private bool SearchByHouse, SearchByStaff, SearchByStudents;
+    private bool SearchGryffindor, SearchSlytherin, SearchRavenclaw, SearchHufflepuff;
 
     protected override async Task OnInitializedAsync()
     {
@@ -131,42 +160,67 @@
     {
         get
         {
-            // No search text: apply only student/staff filters if specified
+            // No search text: apply student/staff/house filters if specified
             if (string.IsNullOrWhiteSpace(CharacterSearchText))
             {
+                IEnumerable<Character> result = CharacterList;
                 if (SearchByStaff && !SearchByStudents)
                 {
-                    return CharacterList.Where(Character => Character.HogwartsStaff ?? false);
+                    result = result.Where(Character => Character.HogwartsStaff ?? false);
                 }
 
                 if (SearchByStudents && !SearchByStaff)
                 {
-                    return CharacterList.Where(Character => Character.HogwartsStudent ?? false);
+                    result = result.Where(Character => Character.HogwartsStudent ?? false);
                 }
 
-                // If both or neither are selected, return all
-                return CharacterList;
+                // If house filtering is enabled and specific houses selected, apply house filter
+                var anyHouseSelected = SearchGryffindor || SearchSlytherin || SearchRavenclaw || SearchHufflepuff;
+                if (SearchByHouse && anyHouseSelected)
+                {
+                    var selected = new List<string>();
+                    if (SearchGryffindor) selected.Add("Gryffindor");
+                    if (SearchSlytherin) selected.Add("Slytherin");
+                    if (SearchRavenclaw) selected.Add("Ravenclaw");
+                    if (SearchHufflepuff) selected.Add("Hufflepuff");
+
+                    result = result.Where(c => !string.IsNullOrWhiteSpace(c.House) && selected.Contains(c.House, StringComparer.OrdinalIgnoreCase));
+                }
+
+                // If both or neither are selected, result already contains all matching by house.
+                return result;
             }
 
             // With search text: evaluate name/house text matches and optionally type filters
             return CharacterList.Where(Character =>
             {
                 var matchName = Character.Name?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
-                var matchHouse = Character.House?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
+                // If specific house checkboxes are selected, matchHouse is whether character's house equals any selected house.
+                var anyHouseSelected = SearchGryffindor || SearchSlytherin || SearchRavenclaw || SearchHufflepuff;
+                bool matchHouse;
+        
+                    var selected = new List<string>();
+                    if (SearchGryffindor) selected.Add("Gryffindor");
+                    if (SearchSlytherin) selected.Add("Slytherin");
+                    if (SearchRavenclaw) selected.Add("Ravenclaw");
+                    if (SearchHufflepuff) selected.Add("Hufflepuff");
+
+                    matchHouse = !string.IsNullOrWhiteSpace(Character.House) && selected.Contains(Character.House, StringComparer.OrdinalIgnoreCase);
+   
                 var matchStaff = Character.HogwartsStaff ?? false;
                 var matchStudent = Character.HogwartsStudent ?? false;
 
                 // If any filter checkboxes are selected, the character must match at least one selected filter
-                var anyFilterSelected = SearchByName || SearchByHouse || SearchByStaff || SearchByStudents;
+                var anyFilterSelected = SearchByHouse || SearchByStaff || SearchByStudents;
 
                 if (anyFilterSelected)
                 {
-                    bool textMatch = (SearchByName && matchName) || (SearchByHouse && matchHouse);
+                    bool textMatch = matchName && (SearchByHouse && matchHouse);
                     bool typeMatch = (SearchByStaff && matchStaff) || (SearchByStudents && matchStudent);
 
                     // If text filters were selected, require textMatch OR typeMatch when type filters also selected.
                     // If only text filters selected, require textMatch. If only type filters selected, require typeMatch.
-                    return ((SearchByName || SearchByHouse) ? textMatch : false) || ((SearchByStaff || SearchByStudents) ? typeMatch : false);
+                    return (SearchByHouse) && ((SearchByStaff || SearchByStudents) ? typeMatch : false);
                 }
 
                 // No specific filters selected: default to searching name or house
