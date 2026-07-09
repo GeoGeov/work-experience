@@ -165,6 +165,7 @@
         IsLoading = false;
     }
 
+	//There is almost certainly a more efficient way to do this.
     private IEnumerable<Character> FilteredCharacters
     {
         get
@@ -203,10 +204,12 @@
             // With search text: evaluate name/house text matches and optionally type filters
             return CharacterList.Where(Character =>
             {
-                var matchName = Character.Name?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
+                
 
                 // Determine house match: if specific house checkboxes are selected, match by exact house membership;
                 // otherwise use contains(text) to match house name.
+                #region HouseMatch Logic
+                
                 var anyHouseSelected = SearchGryffindor || SearchSlytherin || SearchRavenclaw || SearchHufflepuff;
                 bool matchHouse;
                 if (SearchByHouse && anyHouseSelected)
@@ -223,12 +226,33 @@
                 {
                     matchHouse = Character.House?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
                 }
+                #endregion
 
                 var matchStaff = Character.HogwartsStaff ?? false;
                 var matchStudent = Character.HogwartsStudent ?? false;
 
-                // Text filters (name OR house) must match
-                bool textMatch = matchName || matchHouse;
+                
+				#region TextMatch Logic
+                var matchName = Character.Name?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
+                var matchPatronus = Character.Patronus?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
+                var matchAncestory = Character.Ancestry?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
+
+                // Text filtersmust match
+                //only cares for selected feature
+                bool textMatch = false;
+				if (SearchType == "Patronus")
+				{
+					textMatch = matchPatronus;
+				}
+				else if (SearchType == "Ancestory")
+				{
+					textMatch = matchAncestory;
+				}
+				else if (SearchType == "Name")
+				{
+					textMatch = matchName;
+				}
+                #endregion
 
                 // Type filters (staff/student) if selected must match at least one; if none selected, allow both.
                 var typeFilterSelected = SearchByStaff || SearchByStudents;
@@ -236,7 +260,7 @@
                     ? ((SearchByStaff && matchStaff) || (SearchByStudents && matchStudent))
                     : true;
 
-                return textMatch && typeMatch;
+                return textMatch && typeMatch && matchHouse;
             });
         }
     }
@@ -259,7 +283,6 @@
             "", "#c7c7c7"
         }
     };
-
     private string GetImageSource(string? characterImage)
     {
         if (!string.IsNullOrWhiteSpace(characterImage))
@@ -269,7 +292,6 @@
 
         return DefaultImageUrl;
     }
-
     private string GetHouseColor(string? house)
     {
         string houseName = house ?? string.Empty;
@@ -281,7 +303,6 @@
 
         return HouseColors[string.Empty];
     }
-
     private static bool HasWandDetails(Character character)
     {
         bool hasWood = !string.IsNullOrWhiteSpace(character.Wand?.Wood);
@@ -290,7 +311,6 @@
 
         return hasWood || hasCore || hasLength;
     }
-
     private void ToggleWandDetails(Character character)
     {
         character.ShowWandDetails = !character.ShowWandDetails;
