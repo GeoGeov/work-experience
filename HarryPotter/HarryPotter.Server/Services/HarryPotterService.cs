@@ -4,6 +4,8 @@ using HarryPotter.Server.Interfaces;
 
 namespace HarryPotter.Server.Services
 {
+    //as far as im aware this doesnt ever run
+    //but im just updating incase actually used
     public class HarryPotterService : IHarryPotterService
     {
         private readonly HttpClient _httpClient;
@@ -32,6 +34,25 @@ namespace HarryPotter.Server.Services
             List<Spell>? spells = JsonSerializer.Deserialize<List<Spell>>(json);
 
             return spells ?? new List<Spell>();
+        }
+
+        public async Task<List<Movie>> GetMoviesAsync()
+        {
+            try
+            {
+                HttpResponseMessage response = await _httpClient.GetAsync("https://api.potterdb.com/v1/movies");
+                response.EnsureSuccessStatusCode();
+
+                string json = await response.Content.ReadAsStringAsync();
+                List<Movie>? movies = JsonSerializer.Deserialize<List<Movie>>(json);
+
+                return movies ?? new List<Movie>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return new List<Movie>();
+            }
         }
     }
 }

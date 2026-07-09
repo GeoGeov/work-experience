@@ -1,0 +1,72 @@
+@page "/movies"
+@using HarryPotter.Client.Core.Models
+@using HarryPotter.Client.Core.Services
+@inject HarryPotterService HarryPotterService
+
+<h1><b>Movies</b></h1>
+
+<div class="search-field">
+	<input class="form-control" placeholder="Search by title or synopsis" @bind="MovieSearchText" @bind:event="oninput" />
+</div>
+
+<div class="movies-grid mt-3">
+	@if (IsLoading)
+	{
+		<p>Loading...</p>
+	}
+	else if (MovieList?.Any() != true)
+	{
+		<p>No movies found.</p>
+	}
+	else
+	{
+		<div class="row">
+			@foreach (Movie movie in FilteredMovies)
+			{
+				<div class="col-md-4 mb-3">
+					<div class="card h-100">
+						@if (!string.IsNullOrWhiteSpace(movie.Poster))
+						{
+							<img src="@movie.Poster" class="card-img-top" alt="@movie.Title" />
+						}
+						<div class="card-body">
+							<h5 class="card-title">@movie.Title</h5>
+							<p class="card-text">@movie.ReleaseDate</p>
+							<p class="card-text">@movie.Synopsis</p>
+						</div>
+					</div>
+				</div>
+			}
+		</div>
+	}
+</div>
+
+@code {
+	private List<Movie> MovieList { get; set; } = new List<Movie>();
+	private string MovieSearchText { get; set; } = string.Empty;
+	private bool IsLoading { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		IsLoading = true;
+		MovieList = await HarryPotterService.GetMoviesAsync();
+		IsLoading = false;
+	}
+
+	private IEnumerable<Movie> FilteredMovies
+	{
+		get
+		{
+			if (string.IsNullOrWhiteSpace(MovieSearchText))
+			{
+				return MovieList;
+			}
+
+			return MovieList.Where(movie =>
+			{
+				var matchName =  (movie.Title?.Contains(MovieSearchText, StringComparison.OrdinalIgnoreCase) ?? false);
+				return matchName;
+			});
+		}
+	}					 
+}
