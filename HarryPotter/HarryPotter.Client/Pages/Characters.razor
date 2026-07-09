@@ -9,7 +9,7 @@
 
 <div class="search-field">
     <Field Horizontal>
-        <FieldBody ColumnSize="ColumnSize.Is2">
+        <FieldBody ColumnSize="ColumnSize.Is1">
             @* Drop Down Menu*@
             <Dropdown Color="DropdownColor.Secondary">
                 <DropdownToggle>Filter By</DropdownToggle>
@@ -59,8 +59,16 @@
                 </DropdownMenu>
             </Dropdown>
         </FieldBody>
-           
-
+        <FieldBody ColumnSize="ColumnSize.Is1">
+            <label> Search: </Label>
+        </FieldBody>
+        <FieldBody ColumnSize="ColumnSize.Is1">
+            <Select TValue="string" @bind-SelectedValue="@SearchType">
+                <option value ="Name"> Name </option>
+                <option value="Patronus"> Patronus </option>
+                <option value="Ancestory"> Ancestory </option>
+            </Select>
+        </FieldBody>
         <FieldBody ColumnSize="ColumnSize.Is4">
             <input class="form-control" placeholder="Search" @bind="CharacterSearchText" @bind:event="oninput" />
         </FieldBody>
@@ -148,6 +156,7 @@
 
     private bool SearchByHouse, SearchByStaff, SearchByStudents;
     private bool SearchGryffindor, SearchSlytherin, SearchRavenclaw, SearchHufflepuff;
+	private string SearchType = "Name";
 
     protected override async Task OnInitializedAsync()
     {
@@ -195,10 +204,13 @@
             return CharacterList.Where(Character =>
             {
                 var matchName = Character.Name?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
-                // If specific house checkboxes are selected, matchHouse is whether character's house equals any selected house.
+
+                // Determine house match: if specific house checkboxes are selected, match by exact house membership;
+                // otherwise use contains(text) to match house name.
                 var anyHouseSelected = SearchGryffindor || SearchSlytherin || SearchRavenclaw || SearchHufflepuff;
                 bool matchHouse;
-        
+                if (SearchByHouse && anyHouseSelected)
+                {
                     var selected = new List<string>();
                     if (SearchGryffindor) selected.Add("Gryffindor");
                     if (SearchSlytherin) selected.Add("Slytherin");
@@ -206,25 +218,25 @@
                     if (SearchHufflepuff) selected.Add("Hufflepuff");
 
                     matchHouse = !string.IsNullOrWhiteSpace(Character.House) && selected.Contains(Character.House, StringComparer.OrdinalIgnoreCase);
-   
+                }
+                else
+                {
+                    matchHouse = Character.House?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
+                }
+
                 var matchStaff = Character.HogwartsStaff ?? false;
                 var matchStudent = Character.HogwartsStudent ?? false;
 
-                // If any filter checkboxes are selected, the character must match at least one selected filter
-                var anyFilterSelected = SearchByHouse || SearchByStaff || SearchByStudents;
+                // Text filters (name OR house) must match
+                bool textMatch = matchName || matchHouse;
 
-                if (anyFilterSelected)
-                {
-                    bool textMatch = matchName && (SearchByHouse && matchHouse);
-                    bool typeMatch = (SearchByStaff && matchStaff) || (SearchByStudents && matchStudent);
+                // Type filters (staff/student) if selected must match at least one; if none selected, allow both.
+                var typeFilterSelected = SearchByStaff || SearchByStudents;
+                bool typeMatch = typeFilterSelected
+                    ? ((SearchByStaff && matchStaff) || (SearchByStudents && matchStudent))
+                    : true;
 
-                    // If text filters were selected, require textMatch OR typeMatch when type filters also selected.
-                    // If only text filters selected, require textMatch. If only type filters selected, require typeMatch.
-                    return (SearchByHouse) && ((SearchByStaff || SearchByStudents) ? typeMatch : false);
-                }
-
-                // No specific filters selected: default to searching name or house
-                return matchName || matchHouse;
+                return textMatch && typeMatch;
             });
         }
     }
