@@ -3,7 +3,7 @@
 This project is a website built with C#. It connects to the [Harry Potter API](https://hp-api.onrender.com/) — a service on the internet that provides data about Harry Potter characters and spells — and displays that data in a web page.
 
 ---
-
+.........
 ## Challenge Setup
 
 You will be working in pairs. One of you will need to **fork this repo** (forking means making your own personal copy of it on GitHub), and then add your partner as a **collaborator** so you can both make changes to it.
