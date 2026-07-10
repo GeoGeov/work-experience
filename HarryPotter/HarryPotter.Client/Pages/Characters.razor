@@ -5,24 +5,26 @@
 @inject HarryPotterService HarryPotterService
 
 <h1><b>Characters</b></h1>
-
-
-<div class="search-field">
-    <Field Horizontal>
-        <FieldBody ColumnSize="ColumnSize.Is1">
-            @* Drop Down Menu*@
-            <Dropdown Color="DropdownColor.Secondary">
-                <DropdownToggle>Filter By</DropdownToggle>
+<Addons>
+    <Addon>
+         @* Drop Down Menu*@
+            <Dropdown >
+            <DropdownToggle Color="Color.Primary">Filter By</DropdownToggle>
                 <DropdownMenu Class="px-4 py-3" Style="width:480px;">
-                    <Field Horizontal>
-                        <FieldBody ColumnSize="ColumnSize.Is1">
-                            <div class="form-check mt-2">
-                                <input class="form-check-input" type="checkbox" id="byHouse" @bind="SearchByHouse">
-                            </Div>
-                         </FieldBody>
-                         <FieldBody ColumnSize="ColumnSize.Is3">
-                             <Dropdown Color="DropdownColor.Secondary">
-                                <DropdownToggle Disabled="@(!SearchByHouse)">House</DropdownToggle>
+
+                    <Addons>
+                        <Addon Class="addon-gap">
+                            <input class="form-check-input" type="checkbox" id="byHouse" @bind="SearchByHouse">
+                        </Addon>
+                        <Addon>
+                            <Dropdown>
+                                <DropdownToggle 
+                                 Disabled="@(!SearchByHouse)"
+                                 Color="@(SearchByHouse ? Color.Primary: Color.Secondary)"> 
+                                    House 
+                                </DropdownToggle>
+
+
                                 <DropdownMenu Class="px-4 py-3" Style="width:480px;">
                                     <div class="form-check mt-2">
                                         <input class="form-check-input" type="checkbox" id="houseGryffindor" @bind="SearchGryffindor" />
@@ -44,9 +46,9 @@
 
                                 </DropdownMenu>
                             </Dropdown>
-                         </FieldBody>
-                    </Field>
-
+                        </Addon>
+                    </Addons>
+                    
                     <div class="form-check mt-2">
                         <input class="form-check-input" type="checkbox" id="byStudents" @bind="SearchByStudents">
                         <label class="form-check-label" for="byStudents">Students</label>
@@ -58,22 +60,22 @@
 
                 </DropdownMenu>
             </Dropdown>
-        </FieldBody>
-        <FieldBody ColumnSize="ColumnSize.Is1">
-            <label> Search: </Label>
-        </FieldBody>
-        <FieldBody ColumnSize="ColumnSize.Is1">
-            <Select TValue="string" @bind-SelectedValue="@SearchType">
-                <option value ="Name"> Name </option>
-                <option value="Patronus"> Patronus </option>
-                <option value="Ancestory"> Ancestory </option>
-            </Select>
-        </FieldBody>
-        <FieldBody ColumnSize="ColumnSize.Is4">
-            <input class="form-control" placeholder="Search" @bind="CharacterSearchText" @bind:event="oninput" />
-        </FieldBody>
-    </Field>
-</div>
+    </Addon>
+    <Addon>
+        <AddonLabel> Search: </AddonLabel>
+    </Addon>
+    <Addon>
+        <Select TValue="string" @bind-SelectedValue="@SearchType" Style="min-width:120px; max-width:160px">
+            <option value="Name"> Name </option>
+            <option value="Patronus"> Patronus </option>
+            <option value="Ancestory"> Ancestory </option>
+        </Select>
+    </Addon>
+    <Addon>
+        <input class="form-control" placeholder="Search" @bind="CharacterSearchText" @bind:event="oninput" />
+    </Addon>
+</Addons>
+
 
 <LoadingIndicator @bind-Visible="@IsLoading"></LoadingIndicator>
 

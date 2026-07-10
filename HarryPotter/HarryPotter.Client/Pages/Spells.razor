@@ -8,30 +8,27 @@
 
 
 
-<div class="search-field">
-    <Field Horizontal>
-        <FieldBody ColumnSize="ColumnSize.Is2">
-            @* Drop Down Menu*@
-            <Dropdown Color="DropdownColor.Secondary">
-                <DropdownToggle>Filter By</DropdownToggle>
-                <DropdownMenu Class="px-4 py-3" Style="width:480px;">
-                     @* Check Boxes connected to variables*@ 
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="byName" @bind="SearchByName" />
-                        <label class="form-check-label" for="byName">Name</label>
-                    </div>
-                    <div class="form-check mt-2">
-                        <input class="form-check-input" type="checkbox" id="byDescription" @bind="SearchByDescription" />
-                        <label class="form-check-label" for="byDescription">Description</label>
-                    </div>
-                </DropdownMenu>
-            </Dropdown>
-        </FieldBody>
-        <FieldBody ColumnSize="ColumnSize.Is4">
-            <input class="form-control" placeholder="Search" @bind="SpellSearchText" @bind:event="oninput" />
-        </FieldBody>
-    </Field>
-</div>
+<Addons>
+    <Addon Class="addon-gap">
+        <Dropdown>
+            <DropdownToggle Color="Color.Primary">Filter By</DropdownToggle>
+            <DropdownMenu Class="px-4 py-3" Style="width:480px;">
+                @* Check Boxes connected to variables*@ 
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="byName" @bind="SearchByName" />
+                    <label class="form-check-label" for="byName">Name</label>
+                </div>
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="byDescription" @bind="SearchByDescription" />
+                    <label class="form-check-label" for="byDescription">Description</label>
+                </div>
+            </DropdownMenu>
+        </Dropdown>
+    </Addon>
+    <Addon>
+        <input class="form-control" placeholder="Search" @bind="SpellSearchText" @bind:event="oninput" />
+    </Addon>
+</Addons>
 
 <table class="table table-striped table-hover spells-table">
     <thead>
@@ -67,6 +64,9 @@
 
         .spells-table {
             margin-top: 10px;
+        }
+        .addon-gap {
+            margin-right: 32px;
         }
     </style>
 }
