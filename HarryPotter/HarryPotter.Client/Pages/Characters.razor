@@ -80,7 +80,7 @@
 <LoadingIndicator @bind-Visible="@IsLoading"></LoadingIndicator>
 
 <div class="card-grid">
-    @foreach (Character character in FilteredCharacters)
+    @foreach (Character character in DisplayedCharacters)
     {
         <div class="card-border">
             <Card Style="@($"background-color: {GetHouseColor(character.House)}")">
@@ -150,120 +150,187 @@
 
 @code {
     private const string DefaultImageUrl = "https://img.freepik.com/premium-vector/witch-s-broom-silhouette-isolated-white-background-traditional-halloween-decorative-element_502505-561.jpg";
-    private string CharacterSearchText = string.Empty;
+    private string _characterSearchText = string.Empty;
+    private string CharacterSearchText
+    {
+        get => _characterSearchText;
+        set
+        {
+            if (_characterSearchText != value)
+            {
+                _characterSearchText = value;
+                _ = UpdateFilteredCharactersAsync();
+            }
+        }
+    }
 
     private bool IsLoading;
 
     private List<Character> CharacterList { get; set; } = new List<Character>();
 
-    private bool SearchByHouse, SearchByStaff, SearchByStudents;
-    private bool SearchGryffindor, SearchSlytherin, SearchRavenclaw, SearchHufflepuff;
-	private string SearchType = "Name";
+    // Expose filter toggles as properties so changes trigger async filtering
+    private bool _searchByHouse;
+    private bool SearchByHouse
+    {
+        get => _searchByHouse;
+        set { if (_searchByHouse != value) { _searchByHouse = value; _ = UpdateFilteredCharactersAsync(); } }
+    }
+
+    private bool _searchByStaff;
+    private bool SearchByStaff
+    {
+        get => _searchByStaff;
+        set { if (_searchByStaff != value) { _searchByStaff = value; _ = UpdateFilteredCharactersAsync(); } }
+    }
+
+    private bool _searchByStudents;
+    private bool SearchByStudents
+    {
+        get => _searchByStudents;
+        set { if (_searchByStudents != value) { _searchByStudents = value; _ = UpdateFilteredCharactersAsync(); } }
+    }
+
+    private bool _searchGryffindor, _searchSlytherin, _searchRavenclaw, _searchHufflepuff;
+    private bool SearchGryffindor { get => _searchGryffindor; set { if (_searchGryffindor != value) { _searchGryffindor = value; _ = UpdateFilteredCharactersAsync(); } } }
+    private bool SearchSlytherin { get => _searchSlytherin; set { if (_searchSlytherin != value) { _searchSlytherin = value; _ = UpdateFilteredCharactersAsync(); } } }
+    private bool SearchRavenclaw { get => _searchRavenclaw; set { if (_searchRavenclaw != value) { _searchRavenclaw = value; _ = UpdateFilteredCharactersAsync(); } } }
+    private bool SearchHufflepuff { get => _searchHufflepuff; set { if (_searchHufflepuff != value) { _searchHufflepuff = value; _ = UpdateFilteredCharactersAsync(); } } }
+
+    private string _searchType = "Name";
+    private string SearchType { get => _searchType; set { if (_searchType != value) { _searchType = value; _ = UpdateFilteredCharactersAsync(); } } }
+
+    // Characters currently displayed after async filtering
+    private IEnumerable<Character> DisplayedCharacters { get; set; } = new List<Character>();
+
+    private CancellationTokenSource? _filterCts;
 
     protected override async Task OnInitializedAsync()
     {
         IsLoading = true;
         CharacterList = await HarryPotterService.GetCharactersAsync();
-        IsLoading = false;
+        // Initialize the displayed list asynchronously (will clear IsLoading when done)
+        await UpdateFilteredCharactersAsync();
     }
 
-	//There is almost certainly a more efficient way to do this.
-    private IEnumerable<Character> FilteredCharacters
+    // There is almost certainly a more efficient way to do this.
+    // Compute filtered characters synchronously; this will be invoked on a background thread
+    private IEnumerable<Character> ApplyFilters()
     {
-        get
+        // No search text: apply student/staff/house filters if specified
+        if (string.IsNullOrWhiteSpace(CharacterSearchText))
         {
-            // No search text: apply student/staff/house filters if specified
-            if (string.IsNullOrWhiteSpace(CharacterSearchText))
+            IEnumerable<Character> result = CharacterList;
+            if (SearchByStaff && !SearchByStudents)
             {
-                IEnumerable<Character> result = CharacterList;
-                if (SearchByStaff && !SearchByStudents)
-                {
-                    result = result.Where(Character => Character.HogwartsStaff ?? false);
-                }
-
-                if (SearchByStudents && !SearchByStaff)
-                {
-                    result = result.Where(Character => Character.HogwartsStudent ?? false);
-                }
-
-                // If house filtering is enabled and specific houses selected, apply house filter
-                var anyHouseSelected = SearchGryffindor || SearchSlytherin || SearchRavenclaw || SearchHufflepuff;
-                if (SearchByHouse && anyHouseSelected)
-                {
-                    var selected = new List<string>();
-                    if (SearchGryffindor) selected.Add("Gryffindor");
-                    if (SearchSlytherin) selected.Add("Slytherin");
-                    if (SearchRavenclaw) selected.Add("Ravenclaw");
-                    if (SearchHufflepuff) selected.Add("Hufflepuff");
-
-                    result = result.Where(c => !string.IsNullOrWhiteSpace(c.House) && selected.Contains(c.House, StringComparer.OrdinalIgnoreCase));
-                }
-
-                // If both or neither are selected, result already contains all matching by house.
-                return result;
+                result = result.Where(Character => Character.HogwartsStaff ?? false);
             }
 
-            // With search text: evaluate name/house text matches and optionally type filters
-            return CharacterList.Where(Character =>
+            if (SearchByStudents && !SearchByStaff)
             {
-                
+                result = result.Where(Character => Character.HogwartsStudent ?? false);
+            }
 
-                // Determine house match: if specific house checkboxes are selected, match by exact house membership;
-                // otherwise use contains(text) to match house name.
-                #region HouseMatch Logic
-                
-                var anyHouseSelected = SearchGryffindor || SearchSlytherin || SearchRavenclaw || SearchHufflepuff;
-                bool matchHouse;
-                if (SearchByHouse && anyHouseSelected)
-                {
-                    var selected = new List<string>();
-                    if (SearchGryffindor) selected.Add("Gryffindor");
-                    if (SearchSlytherin) selected.Add("Slytherin");
-                    if (SearchRavenclaw) selected.Add("Ravenclaw");
-                    if (SearchHufflepuff) selected.Add("Hufflepuff");
+            // If house filtering is enabled and specific houses selected, apply house filter
+            var anyHouseSelected = SearchGryffindor || SearchSlytherin || SearchRavenclaw || SearchHufflepuff;
+            if (SearchByHouse && anyHouseSelected)
+            {
+                var selected = new List<string>();
+                if (SearchGryffindor) selected.Add("Gryffindor");
+                if (SearchSlytherin) selected.Add("Slytherin");
+                if (SearchRavenclaw) selected.Add("Ravenclaw");
+                if (SearchHufflepuff) selected.Add("Hufflepuff");
 
-                    matchHouse = !string.IsNullOrWhiteSpace(Character.House) && selected.Contains(Character.House, StringComparer.OrdinalIgnoreCase);
-                }
-                else
-                {
-                    matchHouse = Character.House?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
-                }
-                #endregion
+                result = result.Where(c => !string.IsNullOrWhiteSpace(c.House) && selected.Contains(c.House, StringComparer.OrdinalIgnoreCase));
+            }
 
-                var matchStaff = Character.HogwartsStaff ?? false;
-                var matchStudent = Character.HogwartsStudent ?? false;
+            // If both or neither are selected, result already contains all matching by house.
+            return result;
+        }
 
-                
-				#region TextMatch Logic
-                var matchName = Character.Name?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
-                var matchPatronus = Character.Patronus?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
-                var matchAncestory = Character.Ancestry?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
+        // With search text: evaluate name/house text matches and optionally type filters
+        return CharacterList.Where(Character =>
+        {
+            // Determine house match: if specific house checkboxes are selected, match by exact house membership;
+            // otherwise use contains(text) to match house name.
+            var anyHouseSelected = SearchGryffindor || SearchSlytherin || SearchRavenclaw || SearchHufflepuff;
+            bool matchHouse;
+            if (SearchByHouse && anyHouseSelected)
+            {
+                var selected = new List<string>();
+                if (SearchGryffindor) selected.Add("Gryffindor");
+                if (SearchSlytherin) selected.Add("Slytherin");
+                if (SearchRavenclaw) selected.Add("Ravenclaw");
+                if (SearchHufflepuff) selected.Add("Hufflepuff");
 
-                // Text filtersmust match
-                //only cares for selected feature
-                bool textMatch = false;
-				if (SearchType == "Patronus")
-				{
-					textMatch = matchPatronus;
-				}
-				else if (SearchType == "Ancestory")
-				{
-					textMatch = matchAncestory;
-				}
-				else if (SearchType == "Name")
-				{
-					textMatch = matchName;
-				}
-                #endregion
+                matchHouse = !string.IsNullOrWhiteSpace(Character.House) && selected.Contains(Character.House, StringComparer.OrdinalIgnoreCase);
+            }
+            else
+            {
+                matchHouse = Character.House?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
+            }
 
-                // Type filters (staff/student) if selected must match at least one; if none selected, allow both.
-                var typeFilterSelected = SearchByStaff || SearchByStudents;
-                bool typeMatch = typeFilterSelected
-                    ? ((SearchByStaff && matchStaff) || (SearchByStudents && matchStudent))
-                    : true;
+            var matchStaff = Character.HogwartsStaff ?? false;
+            var matchStudent = Character.HogwartsStudent ?? false;
 
-                return textMatch && typeMatch && matchHouse;
-            });
+            var matchName = Character.Name?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
+            var matchPatronus = Character.Patronus?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
+            var matchAncestory = Character.Ancestry?.Contains(CharacterSearchText, StringComparison.OrdinalIgnoreCase) ?? false;
+
+            bool textMatch = false;
+            if (SearchType == "Patronus")
+            {
+                textMatch = matchPatronus;
+            }
+            else if (SearchType == "Ancestory")
+            {
+                textMatch = matchAncestory;
+            }
+            else if (SearchType == "Name")
+            {
+                textMatch = matchName;
+            }
+
+            // Type filters (staff/student) if selected must match at least one; if none selected, allow both.
+            var typeFilterSelected = SearchByStaff || SearchByStudents;
+            bool typeMatch = typeFilterSelected
+                ? ((SearchByStaff && matchStaff) || (SearchByStudents && matchStudent))
+                : true;
+
+            return textMatch && typeMatch && matchHouse;
+        });
+    }
+
+    private async Task UpdateFilteredCharactersAsync()
+    {
+        // Cancel any in-flight update
+        _filterCts?.Cancel();
+        _filterCts = new CancellationTokenSource();
+        var ct = _filterCts.Token;
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // Debounce a bit to coalesce rapid input changes and allow the loading indicator to render
+            await Task.Delay(100, ct);
+
+            // Run the potentially expensive filter on a background thread
+            var results = await Task.Run(() => ApplyFilters().ToList(), ct);
+            DisplayedCharacters = results;
+        }
+        catch (OperationCanceledException)
+        {
+            // ignore cancellations
+            return;
+        }
+        finally
+        {
+            if (!ct.IsCancellationRequested)
+            {
+                IsLoading = false;
+                StateHasChanged();
+            }
         }
     }
 
